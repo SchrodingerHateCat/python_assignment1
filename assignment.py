@@ -10,13 +10,16 @@ Collaborators: <list the UIDs of ALL members of your project group here>
 """
 import os
 import csv
-from datetime import datetime
+from datetime import datetime,timedelta
 
 def analyse(path_to_files):
-    question_1(path_to_files)
+    print('Analysing data from folder \'' + path_to_files + '\'\n')
+    recent_file = question_1(path_to_files)
+    question_2(path_to_files,recent_file)
 
 
 def question_1(path_to_files):
+    print('Question 1:')
     dirs = os.listdir(path_to_files)
     file_format = '%m-%d-%Y'
     date_format = '%Y-%m-%d %H:%M:%S'
@@ -40,10 +43,53 @@ def question_1(path_to_files):
             total_cases += int(row['Confirmed'])
             total_deaths += int(row['Deaths'])
 
-    print('Question 1:')
     print('Most recent data is in file \'' + recent_file + '\'')
     print('Last updated at ' + last_update)
-    print('Total worldwide cases: ' ,total_cases,', Total worldwide deaths: ' ,total_deaths)
+    print('Total worldwide cases: ',total_cases,', Total worldwide deaths: ',total_deaths,'\n')
+    return recent_file
+
+def question_2(path_to_files,recent_file):
+    print('Question 2:')
+    file_format = '%m-%d-%Y'
+    country_cases = {}
+    country_deaths = {}
+    country_lastdate = {}
+    country_news = {}
+    with open(path_to_files+'/'+recent_file , 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row['Country_Region'] in country_cases.keys():
+                country_cases[row['Country_Region']] += int(row['Confirmed'])
+                country_deaths[row['Country_Region']] += int(row['Deaths'])
+            else:
+                country_cases[row['Country_Region']] = int(row['Confirmed'])
+                country_deaths[row['Country_Region']] = int(row['Deaths'])
+    
+    file_name = recent_file.split('.')[0]
+    last_day_file = get_yesterday(file_format,file_name)
+    with open(path_to_files+'/'+last_day_file+'.csv' , 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row['Country_Region'] in country_lastdate.keys():
+                country_lastdate[row['Country_Region']] += int(row['Confirmed'])
+            else:
+                country_lastdate[row['Country_Region']] = int(row['Confirmed'])
+    for k,v in country_cases.items():
+        country_news[k] = v - country_lastdate[k]
+    temp = sorted(country_cases.items(), key = lambda v:(v[1],v[0]),reverse=True)
+    for i in range(10):
+        print('{0:20} - total cases: {1:10} -deaths: {2:10} -new: {3:10}'.format(temp[i][0],temp[i][1],country_deaths[temp[i][0]],country_news[temp[i][0]]))
+    print()
+        
+
+
+
+
+def question_3(path_to_files):
+    pass
+
+def question_4(recent_file):
+    pass
 
 
 
@@ -59,6 +105,18 @@ def compare_date(format_pattern,time1,time2):
     '''    
     different = (datetime.strptime(time1,format_pattern) - datetime.strptime(time2,format_pattern))
     return different.days > 0
+
+
+def get_yesterday(format_pattern,date):
+    '''
+    description: return the last day of input parameter date
+    param {string}date: flag date
+          {string}format_pattern: date format
+    return {string}lastday
+    '''    
+    this_day = datetime.strptime(date,format_pattern)
+    last_day = this_day - timedelta(days = 1)
+    return last_day.strftime(format_pattern)
 
 # The section below will be executed when you run this file.
 # Use it to run tests of your analysis function on the data
