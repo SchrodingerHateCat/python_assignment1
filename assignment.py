@@ -16,6 +16,7 @@ def analyse(path_to_files):
     print('Analysing data from folder \'' + path_to_files + '\'\n')
     recent_file = question_1(path_to_files)
     question_2(path_to_files,recent_file)
+    question_3(path_to_files,recent_file)
 
 
 def question_1(path_to_files):
@@ -85,8 +86,46 @@ def question_2(path_to_files,recent_file):
 
 
 
-def question_3(path_to_files):
-    pass
+def question_3(path_to_files,recent_file):
+    print('Question 3')
+    file_format = '%m-%d-%Y'
+    dirs = os.listdir(path_to_files)
+    current_date = recent_file.split('.')[0]
+    current_cases,current_deaths = get_day_data(path_to_files,current_date)
+    last_cases = 0
+    last_deaths = 0
+    cases_dir = {}
+    deaths_dir = {}
+    while get_yesterday(file_format,current_date)+'.csv' in dirs:
+        yesterday = get_yesterday(file_format,current_date)
+        last_cases,last_deaths = get_day_data(path_to_files,yesterday)
+        new_cases = current_cases - last_cases
+        new_deaths = current_deaths - last_deaths
+        cases_dir[current_date] = new_cases
+        deaths_dir[current_date] = new_deaths
+        print('{0:2}: new cases: {1:10}  new deaths: {2:10}'.format(current_date,new_cases,new_deaths))
+        current_date = yesterday
+        current_cases = last_cases
+        current_deaths = last_deaths
+
+    current_date = recent_file.split('.')[0]
+    total_new_cases = 0
+    total_new_deaths = 0
+    start_date = ''
+    end_date = recent_file.split('.')[0]
+    while current_date+'.csv' in dirs:
+        if datetime.strptime(current_date,file_format).weekday() == 0 or get_yesterday(file_format,current_date)+'.csv' not in dirs:
+            start_date = current_date
+            print('week {0:1} to {1:1} : new cases: {2:10} new deaths: {3:10}'.format(start_date,end_date,total_new_cases,total_new_deaths))
+            total_new_cases = 0
+            total_new_deaths = 0
+            end_date = get_yesterday(file_format,current_date)
+        else:
+            total_new_cases += cases_dir[current_date]
+            total_new_deaths += deaths_dir[current_date]
+        current_date = get_yesterday(file_format,current_date)
+
+
 
 def question_4(recent_file):
     pass
@@ -117,6 +156,24 @@ def get_yesterday(format_pattern,date):
     this_day = datetime.strptime(date,format_pattern)
     last_day = this_day - timedelta(days = 1)
     return last_day.strftime(format_pattern)
+
+def get_day_data(path_to_files,date):
+    '''
+    description: get cases and deaths data from that day
+    param {string} path_to_files
+          {string} date
+    return {int} cases: total cases of given day
+           {int} deaths: total deaths of given day
+    '''    
+    cases = 0
+    deaths = 0
+    with open(path_to_files+'/'+date+'.csv' , 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            cases += int(row['Confirmed'])
+            deaths += int(row['Deaths'])
+    return cases,deaths
+
 
 # The section below will be executed when you run this file.
 # Use it to run tests of your analysis function on the data
